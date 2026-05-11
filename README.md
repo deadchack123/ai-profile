@@ -24,19 +24,20 @@ Memory-файлы Claude Code хранят это, но **per-project**. Они 
 ## Структура
 
 ```
-/Volumes/Mac2/perProject/myMemory/
-├── playbook.md            # human-readable версия для чтения и обсуждения
-├── playbook.rules.md      # LLM-optimized версия, авто-загружается в каждую сессию
-├── scripts/
-│   └── extract_memories.py  # скрипт выгрузки user/feedback memory из всех проектов
-└── README.md              # этот файл
+$PROFILE_DIR (по умолчанию ~/.ai-profile)
+├── README.md              # этот файл
+├── profile.md             # slash-command для /profile (копируется в ~/.claude/commands/)
+├── playbook.md            # human-readable версия (мой пример, у тебя будет свой)
+├── playbook.rules.md      # LLM-optimized версия (мой пример)
+└── scripts/
+    └── extract_memories.py  # выгружает user/feedback memory из всех проектов Claude Code
 ```
 
-И снаружи:
+И что появляется снаружи после `bootstrap`:
 
 ```
-~/.claude/CLAUDE.md                 # одна строка: @path/to/playbook.rules.md (авто-загрузка)
-~/.claude/commands/profile.md       # slash-command /profile (regenerate / audit / merge)
+~/.claude/CLAUDE.md                 # +1 строка: @<absolute-path>/playbook.rules.md (авто-загрузка)
+~/.claude/commands/profile.md       # копия slash-command для вызова /profile в любой сессии
 ```
 
 ## Два формата playbook — зачем оба
@@ -48,21 +49,44 @@ Memory-файлы Claude Code хранят это, но **per-project**. Они 
 
 ## Как работать
 
-### Первая настройка (если ставишь на свой машине)
+### Установка с нуля (3 шага)
 
-1. Склонируй репозиторий куда удобно (у меня — `/Volumes/Mac2/perProject/myMemory/`).
-2. Прогони extract:
-   ```bash
-   python3 scripts/extract_memories.py --out raw.md
-   ```
-   Это дампит все user/feedback memory из всех проектов Claude Code в один файл.
-3. Прочитай дамп, сгруппируй по темам, выведи правила. Это **ручная работа на 30-60 минут** в первый раз — пока что нет хорошей автоматизации, и ручной этап даёт лучший результат, чем чистый автодамп.
-4. Сохрани результат как `playbook.rules.md` в формате, который ты увидишь в этом репо (R1-R31, императив, WHEN/DO/DON'T/EXCEPT/WHY).
-5. Добавь в `~/.claude/CLAUDE.md` строку:
-   ```
-   @/абсолютный/путь/к/playbook.rules.md
-   ```
-6. Скопируй `commands/profile.md` в `~/.claude/commands/profile.md` — это slash-command для обновлений.
+```bash
+# 1. Клонируй в дефолтную локацию
+git clone https://github.com/deadchack123/ai-profile.git ~/.ai-profile
+
+# 2. Установи slash-command в Claude Code
+cp ~/.ai-profile/profile.md ~/.claude/commands/
+
+# 3. Открой Claude Code в любом проекте и запусти:
+/profile bootstrap
+```
+
+Что сделает `bootstrap`:
+
+1. Проверит, что у тебя есть Claude Code memory (нужно ≥10 user/feedback записей; если меньше — попросит поработать ещё пару недель).
+2. Прогонит `extract_memories.py` → получит дамп всех твоих memory.
+3. Синтезирует **твой** playbook (заменит мой reference в репо).
+4. Допишет строку в `~/.claude/CLAUDE.md` для авто-подгрузки.
+5. Удалит временный файл дампа.
+
+После — **открой новую сессию** Claude Code. Текущая не увидит изменений: она грузит CLAUDE.md один раз при старте.
+
+**Проверка что заработало:** в новой сессии — `/profile show`. Должно показать путь, число правил, и подтверждение, что playbook авто-грузится.
+
+### Если клонируешь не в `~/.ai-profile`
+
+Установи env var в shell rc (`.zshrc` / `.bashrc`):
+
+```bash
+export AI_PROFILE_DIR=/your/custom/path
+```
+
+Или симлинк:
+
+```bash
+ln -s /your/custom/path ~/.ai-profile
+```
 
 ### Регенерация (когда накопились новые memory)
 
@@ -73,20 +97,26 @@ Memory-файлы Claude Code хранят это, но **per-project**. Они 
 ```
 
 Что произойдёт:
-1. Запустится `extract_memories.py`, дампит memory.
+1. Запустится `extract_memories.py`, дампит свежую memory.
 2. Claude прочитает дамп + текущий playbook.
 3. Синтезирует обновлённую версию: новые правила добавятся, обсолетные удалятся.
 4. Покажет diff.
 5. Ты глазами смотришь и говоришь "y" или "n".
 
-**Важно:** регенерация может затереть правила, которые ты ручками отредактировал. Перед `regenerate` имеет смысл прогнать `/profile audit` — это просто отчёт без изменений: что устарело, что новое появилось, где drift.
+**Важно:** регенерация может затереть правила, которые ты ручками отредактировал. Перед `regenerate` прогони `/profile audit` — это отчёт без изменений: что устарело, что нового появилось в памяти, где drift.
+
+### Другие команды
+
+- `/profile show` — статус: где лежит, сколько правил, авто-грузится ли.
+- `/profile audit` — отчёт о расхождениях между текущим playbook и свежей памятью, без переписывания.
+- `/profile merge <path-to-other-playbook.md>` — слить с чужим playbook (коллега, командный). 4 бакета: identical / additions / conflicts / style differences, human-in-the-loop.
 
 ### Переезд на другую машину
 
-1. Скопируй папку `myMemory/` (это просто файлы).
-2. Скопируй `~/.claude/commands/profile.md`.
-3. Поправь путь в `~/.claude/CLAUDE.md` — он абсолютный, поэтому при переезде нужно обновить.
-4. (Опционально) перенеси `~/.claude/projects/*/memory/` если хочешь сохранить историю memory.
+1. На новой машине: `git clone https://github.com/deadchack123/ai-profile.git ~/.ai-profile`.
+2. `cp ~/.ai-profile/profile.md ~/.claude/commands/`.
+3. Скопируй свой `playbook.rules.md` со старой машины в `~/.ai-profile/` (либо запусти `/profile bootstrap` заново на новой машине — если перенёс `~/.claude/projects/*/memory/`).
+4. Добавь в `~/.claude/CLAUDE.md` строку `@/Users/<you>/.ai-profile/playbook.rules.md`.
 
 ## Что в playbook идёт vs не идёт
 
@@ -109,19 +139,16 @@ Memory-файлы Claude Code хранят это, но **per-project**. Они 
 
 ## Попробовать у себя (для коллег)
 
-Если ты пользуешься Claude Code и хочешь свой playbook:
+Если ты пользуешься Claude Code и хочешь свой playbook — см. секцию **Установка с нуля** выше. Three steps + одна команда.
 
-1. Клонируй этот репо как референс структуры.
-2. Прогони `extract_memories.py` на своей памяти:
-   ```bash
-   python3 scripts/extract_memories.py --out my_raw.md
-   ```
-   Если файл маленький (<10 memories) — у тебя ещё не накопилось данных. Поработай ещё с Claude Code пару недель, давай feedback ("делай так", "не делай этого"), потом возвращайся.
-3. Сядь с дампом и попроси Claude в новой сессии: "вот мои user/feedback memory из всех проектов, сгруппируй по темам и выдели кросс-проектные паттерны, после этого предложи структуру playbook'а".
-4. Дальше итеративно — Claude пишет черновик, ты правишь, повторяете.
-5. В конце — компиляция в `playbook.rules.md` и подключение через `CLAUDE.md`.
+Что важно знать перед запуском:
 
-Будет интересно сравнить твой playbook с моим — что общего, что радикально разное. Это покажет, насколько паттерны универсальны vs специфичны для каждого человека.
+- **Нужна накопленная память.** Bootstrap требует ≥10 user/feedback memory across твоих проектов. Если меньше — Claude Code просто не успел "запомнить" твои предпочтения. Поработай ещё пару недель, давай явный feedback в сессиях ("делай так", "не делай этого", "от теперь всегда X" — это превращается в memory).
+- **Reference playbook в репо — мой, не твой.** При первом `bootstrap` он перезатрётся твоим, синтезированным из твоих memory. Ты получишь warning перед перезаписью.
+- **Bootstrap = черновик ~90% качества.** Это не финальная версия — Claude может пропустить пару универсалий или оставить пару project-specific. После генерации прочитай свой `playbook.rules.md` и поправь 3-5 правил руками. Обычно занимает 5-10 минут.
+- **Промпт синтеза эволюционирует.** Если найдёшь систематический баг (Claude дропает что-то важное / тащит project-specific) — открой issue или скажи мне, поправим промпт в `profile.md`.
+
+Будет интересно сравнить твой playbook с моим — что общего, что радикально разное. Это покажет, насколько паттерны универсальны vs специфичны для каждого.
 
 ## Открытые вопросы
 
