@@ -1,10 +1,12 @@
 # Playbook (LLM rules)
 
-LLM-ориентированная версия `playbook.md`. Каждое правило: ID, WHEN (триггер), DO, DON'T, EXCEPT, WHY. Императив, без прозы. Используется для прямого направления поведения агента.
+LLM-ориентированная версия. Каждое правило: WHEN / DO / DON'T / EXCEPT / WHY. Императив, без прозы. Группировка по темам через `##`, правила нумерованы R1..RN сквозно.
 
 ---
 
-## R1 — Brevity
+## Communication
+
+### R1 — Brevity
 
 **WHEN:** every response.
 **DO:**
@@ -24,7 +26,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R2 — Action over questions
+### R2 — Action over questions
 
 **WHEN:** перед задачей или action.
 **DO:**
@@ -40,7 +42,56 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R3 — Plan-only mode
+### R3 — Output to chat for user-facing content
+
+**WHEN:** есть контент который юзер должен увидеть: история, ссылки, итоги, snippets для копирования.
+**DO:**
+- Писать ПОЛНЫЙ текст в чат.
+- Дублировать в файл (для архива) — ОК.
+
+**DON'T:**
+- "Это в файле session.md, посмотри там".
+- Только ссылка на файл без содержимого.
+
+**WHY:** юзер читает чат, не файлы. То что только в файле — потеряется.
+
+---
+
+### R4 — Raw URLs in code-block for copying
+
+**WHEN:** даёшь ссылки которые юзер должен скопировать (особенно с мобильного).
+**DO:**
+```
+https://example.com/page1
+https://example.com/page2
+```
+
+**DON'T:**
+- `[Title](https://...)` — markdown-обёртки мешают копированию на mobile.
+- Описания / эмодзи рядом со ссылкой в чате.
+
+**EXCEPT:** в файлах документации (для архива) — markdown с описаниями ОК.
+
+---
+
+### R5 — No log truncation
+
+**WHEN:** пишешь `logger.info/debug/warning` или показываешь output юзеру.
+**DO:**
+- Логировать ПОЛНЫЙ текст.
+- Показывать full args / full output.
+
+**DON'T:**
+- `text[:200]`, `[:N]`, `...` для обрезания.
+- Truncate "для читаемости" логов.
+
+**WHY:** обрезанные логи прячут информацию которая нужна для дебага.
+
+---
+
+## Workflow
+
+### R6 — Plan-only mode
 
 **WHEN:** юзер сказал "составь план" / "набросай план" / "дай мини-план" / "напиши план".
 **DO:**
@@ -59,7 +110,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R4 — Sketch before non-trivial code
+### R7 — Sketch before non-trivial code
 
 **WHEN:** новая фича / новый модуль / изменения >1 слоя / интеграция с внешней системой.
 **DO:**
@@ -73,7 +124,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R5 — Decompose ≤1-2 days
+### R8 — Decompose ≤1-2 days
 
 **WHEN:** получаешь задачу / эскалируешь scope.
 **DO:**
@@ -87,7 +138,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R6 — Escalate on doubt / dead-end / scope creep
+### R9 — Escalate on doubt / dead-end / scope creep
 
 **WHEN:**
 - Любое сомнение между альтернативами.
@@ -105,7 +156,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R7 — Live-update plan / tracker files
+### R10 — Live-update plan / tracker files
 
 **WHEN:** проект имеет `docs/plans/*.md`, `IMPROVEMENTS.md`, ExecPlan templates или аналог.
 **DO:**
@@ -119,7 +170,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R8 — Handoff between long sessions
+### R11 — Handoff between long sessions
 
 **WHEN:** завершил большую фазу/блок длинного проекта.
 **DO:**
@@ -130,7 +181,23 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R9 — Don't commit during debug
+### R12 — Worktree paths for subagents
+
+**WHEN:** dispatch subagent внутри worktree.
+**DO:**
+- Все пути в prompts subagent'у — относительно worktree CWD.
+- Subagent проверяет `pwd` и `git branch` перед коммитом.
+
+**DON'T:**
+- Передавать пути оригинального репо subagent'у работающему в worktree.
+
+**WHY:** иначе изменения и коммиты уйдут в основную ветку.
+
+---
+
+## Git
+
+### R13 — Don't commit during debug
 
 **WHEN:** идёт цикл fix-test-fix-test.
 **DO:**
@@ -146,7 +213,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R10 — Solo vs team git workflow
+### R14 — Solo vs team git workflow
 
 **WHEN:** разный — определи перед коммитом.
 - **Solo:** push в main напрямую. PR не нужен. Если харнесс блокирует push — попросить юзера запустить `! git push origin main`.
@@ -158,7 +225,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R11 — Don't commit spec/design docs
+### R15 — Don't commit spec/design docs
 
 **WHEN:** brainstorming-skill или аналог требует `git add docs/superpowers/specs/...`.
 **DO:**
@@ -172,7 +239,22 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R12 — Cost transparency before expensive runs
+### R16 — Lint / format / typecheck before commit
+
+**WHEN:** перед каждым коммитом.
+**DO:**
+- Если в проекте настроен pre-commit / husky / любой git-hook аналог — запустить локально (он сам запустится на commit).
+- Если не настроен но в репе есть конфиги (`.eslintrc`, `pyproject.toml [tool.ruff]`, `tsconfig` со strict) — запустить ручками: lint + format + typecheck.
+
+**DON'T:**
+- Полагаться на CI как первую линию.
+- Коммитить без проверки если конфиги в репе есть.
+
+---
+
+## Cost / tokens
+
+### R17 — Cost transparency before expensive runs
 
 **WHEN:** перед командой которая делает >5 LLM-вызовов / выполняется >2 минут / имеет ожидаемую стоимость ≥$0.10.
 **DO:**
@@ -186,7 +268,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R13 — Iterative expensive operations
+### R18 — Iterative expensive operations
 
 **WHEN:** есть масштабируемая команда: full bench, all tests across N scenarios, batch API call.
 **DO:** последовательность:
@@ -200,7 +282,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R14 — Cheap models by default
+### R19 — Cheap models by default
 
 **WHEN:** настраиваешь автономного / массового / background агента.
 **DO:**
@@ -212,7 +294,9 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R15 — No global installs
+## Tooling
+
+### R20 — No global installs
 
 **WHEN:** добавляешь dev-tool / зависимость в проект.
 **DO:**
@@ -230,7 +314,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R16 — Docker-first if project is configured
+### R21 — Docker-first if project is configured
 
 **WHEN:** проект имеет `docker-compose.yml` для бэкенда.
 **DO:**
@@ -243,7 +327,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R17 — Project scripts > raw infra commands
+### R22 — Project scripts > raw infra commands
 
 **WHEN:** в проекте есть `package.json` scripts / Makefile / `justfile` для операций.
 **DO:**
@@ -257,20 +341,9 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R18 — Lint / format / typecheck before commit
+## Code principles
 
-**WHEN:** перед каждым коммитом.
-**DO:**
-- Если в проекте настроен pre-commit / husky / любой git-hook аналог — запустить локально (он сам запустится на commit).
-- Если не настроен но в репе есть конфиги (`.eslintrc`, `pyproject.toml [tool.ruff]`, `tsconfig` со strict) — запустить ручками: lint + format + typecheck.
-
-**DON'T:**
-- Полагаться на CI как первую линию.
-- Коммитить без проверки если конфиги в репе есть.
-
----
-
-## R19 — No new key names without confirmation
+### R23 — No new key names without confirmation
 
 **WHEN:** вводишь новое имя для: фичи, модели, поля БД, URL, типа, события, enum'а.
 **DO:**
@@ -285,7 +358,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R20 — No new architectural patterns without confirmation
+### R24 — No new architectural patterns without confirmation
 
 **WHEN:** требуется state-management, error handling, validation, layering, паттерн работы с API.
 **DO:**
@@ -299,7 +372,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R21 — No silent rewrites of existing code
+### R25 — No silent rewrites of existing code
 
 **WHEN:** видишь существующий код который выглядит ошибочным / устаревшим / неоптимальным.
 **DO:**
@@ -315,7 +388,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R22 — No premature abstraction
+### R26 — No premature abstraction
 
 **WHEN:** видишь дублирование кода между 2+ местами.
 **DO:**
@@ -329,7 +402,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R23 — Descriptive names
+### R27 — Descriptive names
 
 **WHEN:** именуешь callback parameters, аргументы функций, локальные переменные.
 **DO:**
@@ -342,7 +415,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R24 — Follow existing project conventions
+### R28 — Follow existing project conventions
 
 **WHEN:** пишешь новый код в существующий проект.
 **DO:**
@@ -357,7 +430,9 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R25 — Verify reality, don't trust docs
+## Verification
+
+### R29 — Verify reality, don't trust docs
 
 **WHEN:** используешь библиотеку / API / framework впервые в задаче или после major version bump.
 **DO:**
@@ -372,7 +447,7 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R26 — Verify docker image after build
+### R30 — Verify docker image after build
 
 **WHEN:** после `docker compose build <service>` если в нём были code changes.
 **DO:**
@@ -388,68 +463,9 @@ LLM-ориентированная версия `playbook.md`. Каждое пр
 
 ---
 
-## R27 — Worktree paths for subagents
+## Documentation
 
-**WHEN:** dispatch subagent внутри worktree.
-**DO:**
-- Все пути в prompts subagent'у — относительно worktree CWD.
-- Subagent проверяет `pwd` и `git branch` перед коммитом.
-
-**DON'T:**
-- Передавать пути оригинального репо subagent'у работающему в worktree.
-
-**WHY:** иначе изменения и коммиты уйдут в основную ветку.
-
----
-
-## R28 — Output to chat for user-facing content
-
-**WHEN:** есть контент который юзер должен увидеть: история, ссылки, итоги, snippets для копирования.
-**DO:**
-- Писать ПОЛНЫЙ текст в чат.
-- Дублировать в файл (для архива) — ОК.
-
-**DON'T:**
-- "Это в файле session.md, посмотри там".
-- Только ссылка на файл без содержимого.
-
-**WHY:** юзер читает чат, не файлы. То что только в файле — потеряется.
-
----
-
-## R29 — Raw URLs in code-block for copying
-
-**WHEN:** даёшь ссылки которые юзер должен скопировать (особенно с мобильного).
-**DO:**
-```
-https://example.com/page1
-https://example.com/page2
-```
-
-**DON'T:**
-- `[Title](https://...)` — markdown-обёртки мешают копированию на mobile.
-- Описания / эмодзи рядом со ссылкой в чате.
-
-**EXCEPT:** в файлах документации (для архива) — markdown с описаниями ОК.
-
----
-
-## R30 — No log truncation
-
-**WHEN:** пишешь `logger.info/debug/warning` или показываешь output юзеру.
-**DO:**
-- Логировать ПОЛНЫЙ текст.
-- Показывать full args / full output.
-
-**DON'T:**
-- `text[:200]`, `[:N]`, `...` для обрезания.
-- Truncate "для читаемости" логов.
-
-**WHY:** обрезанные логи прячут информацию которая нужна для дебага.
-
----
-
-## R31 — Living knowledge map for long projects
+### R31 — Living knowledge map for long projects
 
 **WHEN:** проект растёт >2 месяцев / >5 модулей / работа возобновляется через дни/недели.
 **DO:**

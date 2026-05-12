@@ -27,8 +27,7 @@ Memory-файлы Claude Code хранят это, но **per-project**. Они 
 $PROFILE_DIR (по умолчанию ~/.ai-profile)
 ├── README.md              # этот файл
 ├── profile.md             # slash-command для /profile (копируется в ~/.claude/commands/)
-├── playbook.md            # human-readable версия (мой пример, у тебя будет свой)
-├── playbook.rules.md      # LLM-optimized версия (мой пример)
+├── playbook.rules.md      # сам playbook — то что грузится в Claude (мой как reference)
 └── scripts/
     └── extract_memories.py  # выгружает user/feedback memory из всех проектов Claude Code
 ```
@@ -40,12 +39,9 @@ $PROFILE_DIR (по умолчанию ~/.ai-profile)
 ~/.claude/commands/profile.md       # копия slash-command для вызова /profile в любой сессии
 ```
 
-## Два формата playbook — зачем оба
+## Формат playbook
 
-- **`playbook.md`** — нарративный, для чтения людьми. Структура по темам (стиль общения, git, tooling). Удобно открыть и осмыслить, обсудить с собой.
-- **`playbook.rules.md`** — императивный, для LLM. 31 правило с фиксированной структурой `WHEN → DO → DON'T → EXCEPT → WHY`. Это то, что реально подгружается в каждую сессию.
-
-Источник истины — `playbook.md`. `playbook.rules.md` — компилированная версия (пока вручную, в будущем можно автоматизировать через `/profile regenerate`).
+Один файл — `playbook.rules.md`. Правила сгруппированы по темам через `##` заголовки (Communication / Workflow / Git / Cost / Tooling / Code principles / Verification / Documentation), правила нумерованы R1..RN сквозно. Каждое правило — фиксированная структура `WHEN → DO → DON'T → EXCEPT → WHY`. Императив, без прозы. Это то, что Claude грузит в каждую сессию через `~/.claude/CLAUDE.md`, и одновременно — то, что ты можешь прочитать глазами: темы дают навигацию, формат каждого правила скимится.
 
 ## Как работать
 

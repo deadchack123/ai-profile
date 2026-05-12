@@ -38,10 +38,23 @@ Goal: clean slate to working profile in one command.
 - If `user + feedback < 10` → tell user: "You have only N memories across M projects. Profile will be thin and not very useful. Recommended path: work with Claude Code for a few more weeks, give explicit 'do this / don't do this' feedback during sessions (these become memories), then re-run `/profile bootstrap`. Synthesize anyway with current data? [y/n]". On `n` — cleanup `/tmp/profile_extract.md` and STOP.
 
 **Step 5. Synthesize the playbook.**
-Follow this strict format for every rule:
+
+Structure: rules grouped under thematic `##` headers, each rule is `### R<N>`. Sequential numbering R1..RN across all themes (numbers don't reset per theme).
+
+Themes to use (`##` headers, in this order, omit any with zero rules):
+- `## Communication` — how the agent talks to the user, output format
+- `## Workflow` — how to approach tasks, planning, escalation
+- `## Git` — commits, branches, push policy
+- `## Cost / tokens` — LLM resource management
+- `## Tooling` — env, installs, infra commands
+- `## Code principles` — writing/reviewing code
+- `## Verification` — checking that work is real
+- `## Documentation` — knowledge maps, handoffs
+
+Format for every rule:
 
 ```
-## R<N> — <short title>
+### R<N> — <short title>
 
 **WHEN:** <observable trigger>
 **DO:**
@@ -118,25 +131,33 @@ Synthesis principles:
   - Behavior depends on a specific library/framework/tool that user doesn't use everywhere.
   - Rule encodes a one-time research conclusion ("X is not viable as Y") — not a behavior.
 
-- **Group thematically:** communication style, workflow, git, cost/tokens, tooling, code principles, verification, documentation. Order by trigger frequency within each theme.
+- **Group thematically using `##` headers from the list above.** Within each theme, order rules by trigger frequency (most common first). If a theme has 0 rules — omit its header entirely.
 
-- **Number rules R1, R2, ... sequentially in display order.**
+- **Number rules R1, R2, ... sequentially across themes** in display order. Numbers do NOT reset per theme — R1..R5 might be communication, R6..R12 workflow, etc.
 
 - **Target volume:** roughly one rule per 1.5-2 source memories after dropping project-specific. If you started with 50 memories and ended with 8 rules — you over-merged or over-dropped, re-check. If you ended with 60 rules — you split too granularly, look for true duplicates. Concrete checkpoint: count memories that pass the WHEN-generality test, then rules should be ~50-70% of that count (some merge into single rules with the same trigger).
 
-**Step 6. Write `playbook.rules.md`** to `$PROFILE_DIR/playbook.rules.md`. Header: `# Playbook (LLM rules)\n\nLLM-ориентированная версия. Каждое правило: WHEN / DO / DON'T / EXCEPT / WHY. Императив, без прозы.\n\n---`
+**Step 6. Write `playbook.rules.md`** to `$PROFILE_DIR/playbook.rules.md`. File header:
 
-**Step 7. Write `playbook.md`** — same content reorganized as narrative for human reading. Sections by theme (## Стиль общения, ## Workflow, etc.) with the same rules but in less rigid prose form. Useful for review and discussion.
+```
+# Playbook (LLM rules)
 
-**Step 8. Wire up auto-loading.**
+LLM-ориентированная версия. Каждое правило: WHEN / DO / DON'T / EXCEPT / WHY. Императив, без прозы. Группировка по темам через `##`, правила нумерованы R1..RN сквозно.
+
+---
+```
+
+Then thematic sections with rules per the format in Step 5.
+
+**Step 7. Wire up auto-loading.**
 - Read `~/.claude/CLAUDE.md`.
 - If it doesn't already contain a reference to `playbook.rules.md`, append the line: `@$PROFILE_DIR/playbook.rules.md` (with `$PROFILE_DIR` resolved to absolute path).
-- If user uses `AI_PROFILE_DIR` env var, prefer the env-var-style reference if shell expansion works in CLAUDE.md (it doesn't — so resolve to absolute path).
+- `AI_PROFILE_DIR` env var doesn't expand in CLAUDE.md — always resolve to absolute path.
 
-**Step 9. Cleanup.**
+**Step 8. Cleanup.**
 - `rm /tmp/profile_extract.md`.
 
-**Step 10. Report to user.**
+**Step 9. Report to user.**
 - Number of rules generated.
 - Path to `playbook.rules.md`.
 - Confirmation auto-load is wired in `~/.claude/CLAUDE.md`.
